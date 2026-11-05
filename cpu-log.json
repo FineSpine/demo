@@ -20,7 +20,14 @@
       "process": "/Users/khushkanjani/.local/bin/cursor-agent",
       "cpuPercent": 56.8,
       "summary": "/Users/khushkanjani/.local/bin/cursor-agent is expected while the IDE indexes or runs agents (56.8%). Close unused windows or pause heavy tasks only if fans stay loud for long periods."
+    },
+    {
+      "timestamp": "2026-11-05 22:00:16 UTC+05:30",
+      "pid": 20329,
+      "process": "/Applications/IntelliJ IDEA CE.app/Contents/MacOS/idea",
+      "cpuPercent": 57.7,
+      "summary": "/Applications/IntelliJ IDEA CE.app/Contents/MacOS/idea is the current hotspot (57.7%). Inspect Activity Monitor for stuck threads; quit or update the app if usage stays high."
     }
   ],
-  "lastUpdated": "2026-11-05 21:58:59 UTC+05:30"
+  "lastUpdated": "2026-11-05 22:00:16 UTC+05:30"
 }

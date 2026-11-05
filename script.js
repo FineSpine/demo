@@ -6,6 +6,7 @@ const latestProcess = document.getElementById("latest-process");
 const latestPid = document.getElementById("latest-pid");
 const latestCpu = document.getElementById("latest-cpu");
 const latestSummary = document.getElementById("latest-summary");
+const latestInvoker = document.getElementById("latest-invoker");
 
 function renderLog(data) {
   const entries = data.entries ?? [];
@@ -22,6 +23,8 @@ function renderLog(data) {
   latestProcess.textContent = latest.process;
   latestPid.textContent = String(latest.pid);
   latestCpu.textContent = `${latest.cpuPercent}%`;
+  latestInvoker.textContent =
+    latest.agentInvokerPid != null ? String(latest.agentInvokerPid) : "—";
   latestSummary.textContent = latest.summary;
 
   logEl.replaceChildren(
@@ -32,6 +35,11 @@ function renderLog(data) {
         <strong>${entry.process}</strong>
         <span class="tag">PID ${entry.pid}</span>
         <span class="tag">${entry.cpuPercent}% CPU</span>
+        ${
+          entry.agentInvokerPid != null
+            ? `<span class="tag">scheduler PID ${entry.agentInvokerPid}</span>`
+            : ""
+        }
         <p>${entry.summary}</p>
       `;
       return li;

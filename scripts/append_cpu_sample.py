@@ -11,7 +11,21 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 LOG_PATH = ROOT / "cpu-log.json"
+LOOP_PID_PATH = ROOT / ".agent-loop.pid"
 MAX_ENTRIES = 72  # ~2.5 hours at 2-minute intervals
+
+
+def scheduler_pid() -> int | None:
+    import os
+
+    env = os.environ.get("AGENT_LOOP_PID")
+    if env and env.isdigit():
+        return int(env)
+    if LOOP_PID_PATH.exists():
+        raw = LOOP_PID_PATH.read_text(encoding="utf-8").strip()
+        if raw.isdigit():
+            return int(raw)
+    return None
 
 
 def ist_now() -> str:
@@ -63,6 +77,7 @@ def default_summary(process: str, cpu: float) -> str:
 
 
 def main() -> int:
+    invoker = scheduler_pid()
     summary = " ".join(sys.argv[1:]).strip()
     pid, process, cpu = top_cpu_process()
     if not summary:
@@ -73,20 +88,22 @@ def main() -> int:
     else:
         data = {"entries": []}
 
-    data["entries"].append(
-        {
-            "timestamp": ist_now(),
-            "pid": pid,
-            "process": process,
-            "cpuPercent": round(cpu, 1),
-            "summary": summary,
-        }
-    )
+    entry: dict = {
+        "timestamp": ist_now(),
+        "pid": pid,
+        "process": process,
+        "cpuPercent": round(cpu, 1),
+        "summary": summary,
+    }
+    if invoker is not None:
+        entry["agentInvokerPid"] = invoker
+    data["entries"].append(entry)
     data["entries"] = data["entries"][-MAX_ENTRIES:]
     data["lastUpdated"] = ist_now()
 
     LOG_PATH.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
-    print(f"{process} ({cpu:.1f}%) pid={pid}")
+    inv = f" invokerPid={invoker}" if invoker is not None else ""
+    print(f"{process} ({cpu:.1f}%) pid={pid}{inv}")
     return 0
 
 
