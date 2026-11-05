@@ -5,8 +5,15 @@
       "pid": 20512,
       "process": "cursor-agent",
       "cpuPercent": 55.2,
-      "summary": "cursor-agent is expected while Cursor runs agents or indexes; let tasks finish or close unused agent sessions — reduction is usually not necessary unless the Mac stays hot for a long time."
+      "summary": "cursor-agent is expected while Cursor runs agents or indexes; let tasks finish or close unused agent sessions \u2014 reduction is usually not necessary unless the Mac stays hot for a long time."
+    },
+    {
+      "timestamp": "2026-11-05 21:57:14 UTC+05:30",
+      "pid": 1356,
+      "process": "Discord Helper (Renderer)",
+      "cpuPercent": 31.6,
+      "summary": "Discord Helper is rendering voice/UI; mute or quit Discord when unused, or disable hardware acceleration in Discord settings if spikes persist — optional unless fans stay loud."
     }
   ],
-  "lastUpdated": "2026-11-05 21:54:13 UTC+05:30"
+  "lastUpdated": "2026-11-05 21:57:14 UTC+05:30"
 }

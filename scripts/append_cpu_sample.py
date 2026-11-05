@@ -21,15 +21,17 @@ def ist_now() -> str:
 
 def top_cpu_process() -> tuple[int, str, float]:
     out = subprocess.check_output(
-        ["ps", "-Arco", "pid=,comm=,%cpu="],
+        ["ps", "-Arco", "pid=,%cpu="],
         text=True,
     ).strip()
-    line = out.splitlines()[0]
-    parts = line.split(None, 2)
-    pid = int(parts[0])
-    cpu = float(parts[-1])
-    comm = " ".join(parts[1:-1]) if len(parts) > 2 else parts[1]
-    return pid, comm.strip(), cpu
+    pid_str, cpu_str = out.splitlines()[0].split(None, 1)
+    pid = int(pid_str)
+    cpu = float(cpu_str.strip())
+    comm = subprocess.check_output(
+        ["ps", "-p", str(pid), "-o", "comm="],
+        text=True,
+    ).strip()
+    return pid, comm, cpu
 
 
 def default_summary(process: str, cpu: float) -> str:
