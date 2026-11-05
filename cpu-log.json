@@ -5,7 +5,7 @@
       "pid": 20512,
       "process": "cursor-agent",
       "cpuPercent": 55.2,
-      "summary": "Spotify Helper is decoding audio locally; pause playback or quit Spotify if you are not listening \u2014 otherwise this spike is normal and reduction is optional."
+      "summary": "cursor-agent is expected while Cursor runs agents or indexes; let tasks finish or close unused agent sessions — reduction is usually not necessary unless the Mac stays hot for a long time."
     }
   ],
   "lastUpdated": "2026-11-05 21:54:13 UTC+05:30"
