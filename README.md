@@ -1,6 +1,6 @@
 # demo
 
-A minimal static site for testing GitHub Pages.
+Static GitHub Pages site that logs the top macOS CPU process every ~2 minutes (`cpu-log.json` + `scripts/append_cpu_sample.py`).
 
 ## Publish
 

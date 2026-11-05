@@ -3,18 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Demo</title>
+    <title>macOS CPU monitor · demo</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <main class="card">
-        <h1>Hello from GitHub Pages</h1>
-        <p>If you can read this, the site is deployed.</p>
+    <main class="layout">
+        <header class="hero">
+            <p class="eyebrow">FineSpine/demo · GitHub Pages</p>
+            <h1>macOS top CPU process</h1>
+            <p class="lede">
+                Updated automatically every ~2 minutes from this machine. Each row is a snapshot of whichever process was using the most CPU at sample time.
+            </p>
+            <p class="meta">Last sample: <span id="last-updated">loading…</span></p>
+        </header>
 
-        <button id="counter">Clicked 0 times</button>
-        <button id="theme">Toggle theme</button>
+        <section class="card highlight" id="latest-panel" hidden>
+            <h2>Latest</h2>
+            <dl class="stats">
+                <div><dt>Process</dt><dd id="latest-process">—</dd></div>
+                <div><dt>PID</dt><dd id="latest-pid">—</dd></div>
+                <div><dt>CPU</dt><dd id="latest-cpu">—</dd></div>
+            </dl>
+            <p class="summary" id="latest-summary"></p>
+        </section>
 
-        <p class="meta">Page loaded at <span id="loaded-at"></span></p>
+        <section class="card">
+            <div class="card-head">
+                <h2>Log</h2>
+                <button type="button" id="theme">Toggle theme</button>
+            </div>
+            <p id="log-status" class="meta">Loading log…</p>
+            <ol id="cpu-log" class="log" reversed></ol>
+        </section>
     </main>
     <script src="script.js"></script>
 </body>

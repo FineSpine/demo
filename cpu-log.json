@@ -1,0 +1,12 @@
+{
+  "entries": [
+    {
+      "timestamp": "2026-11-05 21:54:13 UTC+05:30",
+      "pid": 20512,
+      "process": "cursor-agent",
+      "cpuPercent": 55.2,
+      "summary": "Spotify Helper is decoding audio locally; pause playback or quit Spotify if you are not listening \u2014 otherwise this spike is normal and reduction is optional."
+    }
+  ],
+  "lastUpdated": "2026-11-05 21:54:13 UTC+05:30"
+}
