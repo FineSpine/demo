@@ -12,8 +12,15 @@
       "pid": 1356,
       "process": "Discord Helper (Renderer)",
       "cpuPercent": 31.6,
-      "summary": "Discord Helper is rendering voice/UI; mute or quit Discord when unused, or disable hardware acceleration in Discord settings if spikes persist — optional unless fans stay loud."
+      "summary": "Discord Helper is rendering voice/UI; mute or quit Discord when unused, or disable hardware acceleration in Discord settings if spikes persist \u2014 optional unless fans stay loud."
+    },
+    {
+      "timestamp": "2026-11-05 21:58:59 UTC+05:30",
+      "pid": 20512,
+      "process": "/Users/khushkanjani/.local/bin/cursor-agent",
+      "cpuPercent": 56.8,
+      "summary": "/Users/khushkanjani/.local/bin/cursor-agent is expected while the IDE indexes or runs agents (56.8%). Close unused windows or pause heavy tasks only if fans stay loud for long periods."
     }
   ],
-  "lastUpdated": "2026-11-05 21:57:14 UTC+05:30"
+  "lastUpdated": "2026-11-05 21:58:59 UTC+05:30"
 }
