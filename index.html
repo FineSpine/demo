@@ -13,39 +13,34 @@ code,pre{background:#f4f4f4;border-radius:4px}code{padding:1px 4px}pre{padding:1
 </head>
 <body>
 <h1>LLD Practice Feedback</h1>
-<p class="meta">Requirements: <code>requirements.txt</code> (Incident Management Service)<br>Last updated: 2026-11-06 11:01 UTC</p>
+<p class="meta">Requirements: <code>requirements.txt</code> (Incident Management Service)<br>Last updated: 2026-11-06 11:05 UTC</p>
 
 <h2>a) What is right</h2>
 <ul>
-<li><code>NotificationService.sendNotification</code> switches on severity, which is the right shape for the dispatch.</li>
-<li><code>Incident</code> has the severity, id, service, and createdAt fields the spec needs for indexing.</li>
+<li><code>NotificationService.sendNotification</code> now handles all three severities with <code>-&gt;</code> arms, as the spec requires.</li>
+<li><code>RespondentService</code> uses a thread-safe <code>CopyOnWriteArrayList</code> and a clear <code>Optional</code> return, a good fit for the Responder lookup.</li>
 </ul>
 
 <h2>b) What is wrong</h2>
 <ul>
-<li><code>NotificationService.sendNotification</code>: the switch has only the CRITICAL case. WARN (email) and INFO (no-op) are missing, and there is no <code>break</code>, so the CRITICAL case falls through once more cases are added.</li>
-<li><code>NotificationService</code>: <code>case IncidentSeverity.CRITICAL:</code> is not valid in an enum switch on Java 21; use <code>case CRITICAL -&gt;</code>.</li>
-<li><code>NotificationService</code>: <code>import org.persistence.Main</code> is unused. Remove it.</li>
-<li><code>NotificationService</code> is a class, not the interface from the last cycle. Either keep the interface with a dummy impl, or keep the class; pick one and inject it.</li>
-<li><code>Incident</code>: <code>@NoArgsConstructor</code> was removed, but the hand-written no-args constructor still exists. Keep the single no-arg constructor, or switch to a single all-args constructor.</li>
+<li><code>RespondentService.findRespondentByIncident</code>: <code>r.getIncidentId()</code> does not exist on <code>Respondent</code>, which has only <code>respondentId</code> and <code>name</code>. This is a compile error.</li>
+<li><code>Respondent</code> is missing the spec's behaviour: <code>category()</code> (primary, secondary, manager, senior manager), <code>noteAcknowledgement()</code>, and <code>getNextRespondent()</code>.</li>
+<li><code>RespondentService</code> looks up by incident, but the spec routes incidents to respondents by category. Look up the next respondent by category instead.</li>
+<li><code>NotificationService</code>: <code>import org.persistence.Main</code> is still unused. Remove it.</li>
 <li><code>IncidentManagerService.incidentsById</code> is still never initialized, so <code>registerIncident</code> throws a <code>NullPointerException</code>.</li>
-<li><code>IncidentManagerService</code>: severity is still derived from the service name (<code>"payments"</code>, <code>"login"</code>), not from the alert.</li>
-<li><code>WebController.accept</code> still never calls the manager or the notification service, so no incident is created on intake.</li>
+<li><code>IncidentManagerService</code>: severity is still derived from the service name, not the alert.</li>
+<li><code>WebController.accept</code> still never calls the manager, the notifier, or the respondent service, so no incident is created on intake.</li>
 </ul>
 
 <h2>c) What to do next</h2>
 <ol>
-<li><strong>Must-have (runtime):</strong> initialize the map in <code>IncidentManagerService</code>.</li>
-<li><strong>Must-have:</strong> complete the switch with all three severities and <code>-&gt;</code> arms:
-<pre>switch (incident.getSeverity()) {
-    case CRITICAL -&gt; log.info("Dummy phone call");
-    case WARN     -&gt; log.info("Dummy email");
-    case INFO     -&gt; { }
-}</pre>
+<li><strong>Must-have (compile):</strong> fix the <code>getIncidentId()</code> call in <code>RespondentService</code>. Either add a field to <code>Respondent</code> or change the lookup to category, which the spec requires.</li>
+<li><strong>Must-have (runtime):</strong> initialize <code>incidentsById</code> in <code>IncidentManagerService</code>.</li>
+<li><strong>Must-have:</strong> wire the controller: create the incident, register it, notify, and find the respondent.</li>
+<li><strong>Should-have:</strong> add the category enum and <code>getNextRespondent()</code> to <code>Respondent</code>:
+<pre>public enum RespondentCategory { PRIMARY, SECONDARY, MANAGER, SENIOR_MANAGER }</pre>
 </li>
-<li><strong>Must-have:</strong> call the manager and the notifier from <code>WebController.accept</code>.</li>
-<li><strong>Should-have:</strong> derive severity from the alert, not the service name.</li>
-<li><strong>Cleanup:</strong> remove the <code>Main</code> import in <code>NotificationService</code> and the duplicate constructor in <code>Incident</code>.</li>
+<li><strong>Cleanup:</strong> remove the <code>Main</code> import in <code>NotificationService</code>.</li>
 </ol>
 </body>
 </html>
