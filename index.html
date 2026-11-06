@@ -1,42 +1,62 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>macOS CPU monitor · demo</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLD Feedback: FixedWindowRateLimiter</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:720px;margin:0 auto;padding:16px;line-height:1.5;color:#222}
+h1{font-size:1.4rem}h2{font-size:1.15rem;border-bottom:1px solid #ddd;padding-bottom:4px}
+code,pre{background:#f4f4f4;border-radius:4px}code{padding:1px 4px}pre{padding:10px;overflow-x:auto;font-size:.85rem}
+.meta{color:#666;font-size:.9rem}
+</style>
 </head>
 <body>
-    <main class="layout">
-        <header class="hero">
-            <p class="eyebrow">FineSpine/demo · GitHub Pages</p>
-            <h1>macOS top CPU process</h1>
-            <p class="lede">
-                YOOOOOOOOOO ! ! Updated automatically every ~2 minutes from this machine. Each row is a snapshot of whichever process was using the most CPU at sample time.
-            </p>
-            <p class="meta">Last sample: <span id="last-updated">loading…</span></p>
-        </header>
+<h1>LLD Practice Feedback</h1>
+<p class="meta">Requirements: <code>requirements.txt</code> (fixed-window rate limiter)<br>Generated: 2026-11-06 07:53 UTC</p>
 
-        <section class="card highlight" id="latest-panel" hidden>
-            <h2>Latest</h2>
-            <dl class="stats">
-                <div><dt>Process</dt><dd id="latest-process">—</dd></div>
-                <div><dt>PID</dt><dd id="latest-pid">—</dd></div>
-                <div><dt>CPU</dt><dd id="latest-cpu">—</dd></div>
-                <div><dt>2m scheduler</dt><dd id="latest-invoker">—</dd></div>
-            </dl>
-            <p class="summary" id="latest-summary"></p>
-        </section>
+<h2>3a. What is right</h2>
+<ul>
+<li>The project has a clean Spring Boot layout with separated packages (<code>model</code>, <code>pipeline</code>, <code>web</code>, <code>notification</code>).</li>
+<li>Stage transitions are domain logic on <code>Stage</code> (<code>canTransitionTo</code>, <code>allowedNext</code>), not in controllers.</li>
+<li>Tests describe behavior precisely, including terminal states with no exits.</li>
+</ul>
 
-        <section class="card">
-            <div class="card-head">
-                <h2>Log</h2>
-                <button type="button" id="theme">Toggle theme</button>
-            </div>
-            <p id="log-status" class="meta">Loading log…</p>
-            <ol id="cpu-log" class="log" reversed></ol>
-        </section>
-    </main>
-    <script src="script.js"></script>
+<h2>3b. What can be improved</h2>
+<ul>
+<li><code>FixedWindowRateLimiter</code> does not exist yet. <code>src/</code> only contains the HRIS candidate pipeline.</li>
+<li>The working tree has pending changes (main sources staged for deletion, requirements file and brief PDF untracked or modified). Settle this before building on it.</li>
+<li>Put the limiter in its own package (e.g. <code>com.acme.hris.ratelimit</code>) so it doesn't tangle with the pipeline.</li>
+</ul>
+
+<h2>3c. Next priority: state model and validation</h2>
+<p>Build the model first. The spec is a per-client counter that resets on epoch-aligned windows, so the core entity is a small state record holding <code>windowId</code> and <code>count</code>. Define it and the constructor validation before writing <code>allow</code>. This matches the required API (<code>maxRequests</code>, <code>windowSizeMillis</code>, <code>allow(clientId, timestampMillis)</code>) and keeps the rules testable from the start.</p>
+<p>Suggested skeleton (not an implementation):</p>
+<pre><code>public final class FixedWindowRateLimiter {
+    private static final class WindowState {
+        final long windowId;
+        int count;
+        WindowState(long windowId, int count) { this.windowId = windowId; this.count = count; }
+    }
+
+    private final int maxRequests;
+    private final long windowSizeMillis;
+    private final Map&lt;String, WindowState&gt; states = new HashMap&lt;&gt;();
+
+    public FixedWindowRateLimiter(int maxRequests, long windowSizeMillis) {
+        if (maxRequests &lt;= 0 || windowSizeMillis &lt;= 0)
+            throw new IllegalArgumentException("maxRequests and windowSizeMillis must be &gt; 0");
+        this.maxRequests = maxRequests;
+        this.windowSizeMillis = windowSizeMillis;
+    }
+
+    public boolean allow(String clientId, long timestampMillis) { /* validate, then core logic */ }
+}
+</code></pre>
+<p>Pitfalls to avoid:</p>
+<ul>
+<li>Compute the window as <code>timestampMillis / windowSizeMillis</code> (integer division). Do not reset based on the client's first request time; that breaks epoch alignment.</li>
+<li>A rejected request must not increment the stored count. Check <code>count &gt;= maxRequests</code> before incrementing.</li>
+</ul>
 </body>
 </html>
