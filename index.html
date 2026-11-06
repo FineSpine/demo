@@ -13,11 +13,11 @@ code,pre{background:#f4f4f4;border-radius:4px}code{padding:1px 4px}pre{padding:1
 </head>
 <body>
 <h1>LLD Practice Feedback</h1>
-<p class="meta">Requirements: <code>requirements.txt</code> (POST JSON endpoint, HTTP client setup, logging provider)<br>Last updated: 2026-11-06 09:57 UTC</p>
+<p class="meta">Requirements: <code>requirements.txt</code> (POST JSON endpoint, HTTP client setup, logging provider)<br>Last updated: 2026-11-06 10:41 UTC</p>
 
 <h2>a) What is right</h2>
 <ul>
-<li><code>WebController.accept</code> now returns a JSON body via <code>SampleResponse</code>, which fixes the earlier plain-string response.</li>
+<li><code>WebController.accept</code> returns a JSON body via <code>SampleResponse</code>, which fixes the earlier plain-string response.</li>
 <li><code>ExternalApiService</code> builds a <code>RestClient</code> from the injected builder with a base URL, covering the HTTP setup requirement.</li>
 <li>SLF4J logging is in place in <code>Main</code> and <code>WebController</code>.</li>
 </ul>
@@ -28,7 +28,8 @@ code,pre{background:#f4f4f4;border-radius:4px}code{padding:1px 4px}pre{padding:1
 <li><code>WebController.accept</code>: return type is <code>ResponseEntity&lt;?&gt;</code>. Use <code>ResponseEntity&lt;SampleResponse&gt;</code> so the JSON contract is explicit.</li>
 <li><code>WebController.accept</code>: <code>log.info("..." + args)</code> concatenates eagerly. Use <code>log.info("Received /accept request: {}", args)</code>.</li>
 <li><code>WebController</code>: <code>import java.util.ResourceBundle</code> is unused. Remove it.</li>
-<li><code>SampleResponse</code>: a single <code>status</code> field with <code>@AllArgsConstructor</code> is fine, but a <code>record</code> is shorter and immutable.</li>
+<li><code>Alert</code> is an empty class. It is not used anywhere yet, so either give it a purpose or delete it.</li>
+<li><code>SampleResponse</code>: a <code>record</code> is shorter and immutable than the Lombok class.</li>
 </ul>
 
 <h2>c) What to do next</h2>
@@ -43,7 +44,7 @@ public ResponseEntity&lt;SampleResponse&gt; accept(@RequestBody AcceptRequest ar
     return ResponseEntity.ok(new SampleResponse("Accepted!"));
 }</pre>
 </li>
-<li><strong>Cleanup:</strong> remove the unused <code>ResourceBundle</code> import and switch to parameterized logging.</li>
+<li><strong>Cleanup:</strong> remove the unused <code>ResourceBundle</code> import, switch to parameterized logging, and delete <code>Alert</code> if it is not needed.</li>
 <li><strong>Optional:</strong> convert <code>SampleResponse</code> to a <code>record</code>.</li>
 </ol>
 </body>
