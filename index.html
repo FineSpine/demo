@@ -13,41 +13,39 @@ code,pre{background:#f4f4f4;border-radius:4px}code{padding:1px 4px}pre{padding:1
 </head>
 <body>
 <h1>LLD Practice Feedback</h1>
-<p class="meta">Requirements: <code>requirements.txt</code> (Incident Management Service)<br>Last updated: 2026-11-06 10:57 UTC</p>
+<p class="meta">Requirements: <code>requirements.txt</code> (Incident Management Service)<br>Last updated: 2026-11-06 11:01 UTC</p>
 
 <h2>a) What is right</h2>
 <ul>
-<li>The <code>if()</code> compile error from the last cycle is fixed.</li>
-<li><code>NotificationService</code> is a clean interface that separates the dummy call/email from the core flow.</li>
-<li><code>getAndRegisterIncidentFromAlert</code> sets severity and service on the incident, and registers it in one call.</li>
+<li><code>NotificationService.sendNotification</code> switches on severity, which is the right shape for the dispatch.</li>
+<li><code>Incident</code> has the severity, id, service, and createdAt fields the spec needs for indexing.</li>
 </ul>
 
 <h2>b) What is wrong</h2>
 <ul>
+<li><code>NotificationService.sendNotification</code>: the switch has only the CRITICAL case. WARN (email) and INFO (no-op) are missing, and there is no <code>break</code>, so the CRITICAL case falls through once more cases are added.</li>
+<li><code>NotificationService</code>: <code>case IncidentSeverity.CRITICAL:</code> is not valid in an enum switch on Java 21; use <code>case CRITICAL -&gt;</code>.</li>
+<li><code>NotificationService</code>: <code>import org.persistence.Main</code> is unused. Remove it.</li>
+<li><code>NotificationService</code> is a class, not the interface from the last cycle. Either keep the interface with a dummy impl, or keep the class; pick one and inject it.</li>
+<li><code>Incident</code>: <code>@NoArgsConstructor</code> was removed, but the hand-written no-args constructor still exists. Keep the single no-arg constructor, or switch to a single all-args constructor.</li>
 <li><code>IncidentManagerService.incidentsById</code> is still never initialized, so <code>registerIncident</code> throws a <code>NullPointerException</code>.</li>
-<li><code>IncidentManagerService.getAndRegisterIncidentFromAlert</code>: severity is derived by matching the service name (<code>"payments"</code>, <code>"login"</code>). The spec derives it from the alert, not the service name. Use a severity function on the alert fields, e.g. <code>getSeverityFromAlert(Alert)</code>.</li>
-<li><code>IncidentManagerService</code>: the severity defaults to INFO only through the <code>Incident</code> constructor. Make the default explicit in the severity function.</li>
-<li><code>IncidentManagerService.getAndRegisterIncidentFromAlert</code>: the alert fields (<code>serviceId</code>, <code>errorMessage</code>, <code>reportedApi</code>) are not copied to the incident.</li>
-<li><code>IncidentManagerService.registerIncident</code>: the duplicate-id branch is still empty.</li>
-<li><code>NotificationService</code> is not injected or called anywhere. Severity dispatch (CRITICAL → call, WARN → email, INFO → no-op) is missing.</li>
-<li><code>WebController.accept</code> still only logs and acks. It never calls <code>getAndRegisterIncidentFromAlert</code>, so no incident is created on intake.</li>
-<li><code>WebController.accept</code>: <code>ResponseEntity&lt;?&gt;</code> and string concatenation in the log call; use <code>ResponseEntity&lt;AlertAcknowledgement&gt;</code> and <code>log.debug("...{}", alert)</code>.</li>
+<li><code>IncidentManagerService</code>: severity is still derived from the service name (<code>"payments"</code>, <code>"login"</code>), not from the alert.</li>
+<li><code>WebController.accept</code> still never calls the manager or the notification service, so no incident is created on intake.</li>
 </ul>
 
 <h2>c) What to do next</h2>
 <ol>
-<li><strong>Must-have (runtime):</strong> initialize the map:
-<pre>private final TreeMap&lt;String, Incident&gt; incidentsById = new TreeMap&lt;&gt;();</pre>
+<li><strong>Must-have (runtime):</strong> initialize the map in <code>IncidentManagerService</code>.</li>
+<li><strong>Must-have:</strong> complete the switch with all three severities and <code>-&gt;</code> arms:
+<pre>switch (incident.getSeverity()) {
+    case CRITICAL -&gt; log.info("Dummy phone call");
+    case WARN     -&gt; log.info("Dummy email");
+    case INFO     -&gt; { }
+}</pre>
 </li>
-<li><strong>Must-have:</strong> call the manager from the controller, then notify. Inject the service and dispatch by severity:
-<pre>Incident incident = incidentManagerService.getAndRegisterIncidentFromAlert(alert);
-notificationService.sendNotification(incident);</pre>
-</li>
-<li><strong>Must-have:</strong> derive severity from the alert with a function, not the service name:
-<pre>private IncidentSeverity getSeverityFromAlert(Alert alert) { ... }</pre>
-</li>
-<li><strong>Should-have:</strong> copy the alert fields onto the incident, and throw on duplicate ids in <code>registerIncident</code>.</li>
-<li><strong>Should-have:</strong> implement the dispatch (CRITICAL → call, WARN → email, INFO → no-op) either in <code>NotificationService</code> or a router in the manager.</li>
+<li><strong>Must-have:</strong> call the manager and the notifier from <code>WebController.accept</code>.</li>
+<li><strong>Should-have:</strong> derive severity from the alert, not the service name.</li>
+<li><strong>Cleanup:</strong> remove the <code>Main</code> import in <code>NotificationService</code> and the duplicate constructor in <code>Incident</code>.</li>
 </ol>
 </body>
 </html>
