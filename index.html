@@ -13,42 +13,41 @@ code,pre{background:#f4f4f4;border-radius:4px}code{padding:1px 4px}pre{padding:1
 </head>
 <body>
 <h1>LLD Practice Feedback</h1>
-<p class="meta">Requirements: <code>requirements.txt</code> (Incident Management Service)<br>Last updated: 2026-11-06 10:53 UTC</p>
+<p class="meta">Requirements: <code>requirements.txt</code> (Incident Management Service)<br>Last updated: 2026-11-06 10:57 UTC</p>
 
 <h2>a) What is right</h2>
 <ul>
-<li><code>Incident</code> carries severity, id, service, and createdAt, which matches the spec's indexing fields (date, service, severity).</li>
-<li><code>IncidentManagerService.registerIncident</code> keys the store by incident id, which fits the <code>TreeMap&lt;id, Incident&gt;</code> design.</li>
-<li><code>IncidentSeverity</code> and <code>Alert</code> are in place from the earlier cycle.</li>
+<li>The <code>if()</code> compile error from the last cycle is fixed.</li>
+<li><code>NotificationService</code> is a clean interface that separates the dummy call/email from the core flow.</li>
+<li><code>getAndRegisterIncidentFromAlert</code> sets severity and service on the incident, and registers it in one call.</li>
 </ul>
 
 <h2>b) What is wrong</h2>
 <ul>
-<li><code>IncidentManagerService.getIncidentFromAlert</code>: <code>if()</code> has no condition. This is a compile error; the method also never sets severity or copies alert fields into the incident.</li>
-<li><code>IncidentManagerService.incidentsById</code> is never initialized. <code>registerIncident</code> will throw a <code>NullPointerException</code>.</li>
-<li><code>IncidentManagerService.registerIncident</code>: the duplicate-id branch is empty. Throw on duplicates, or document why not.</li>
-<li><code>Incident</code>: a hand-written no-args constructor plus <code>@NoArgsConstructor</code> and <code>@AllArgsConstructor</code> is redundant, and the defaults (INFO, empty service) overwrite what the factory sets. Use one constructor and let the service populate it.</li>
-<li><code>Incident</code> lacks the alert fields (<code>serviceName</code>, <code>serviceId</code>, <code>errorMessage</code>, <code>reportedApi</code>) that the spec requires for the incident.</li>
-<li><code>WebController.accept</code> still only logs and returns an ack. It does not call the manager, so no incident is created.</li>
+<li><code>IncidentManagerService.incidentsById</code> is still never initialized, so <code>registerIncident</code> throws a <code>NullPointerException</code>.</li>
+<li><code>IncidentManagerService.getAndRegisterIncidentFromAlert</code>: severity is derived by matching the service name (<code>"payments"</code>, <code>"login"</code>). The spec derives it from the alert, not the service name. Use a severity function on the alert fields, e.g. <code>getSeverityFromAlert(Alert)</code>.</li>
+<li><code>IncidentManagerService</code>: the severity defaults to INFO only through the <code>Incident</code> constructor. Make the default explicit in the severity function.</li>
+<li><code>IncidentManagerService.getAndRegisterIncidentFromAlert</code>: the alert fields (<code>serviceId</code>, <code>errorMessage</code>, <code>reportedApi</code>) are not copied to the incident.</li>
+<li><code>IncidentManagerService.registerIncident</code>: the duplicate-id branch is still empty.</li>
+<li><code>NotificationService</code> is not injected or called anywhere. Severity dispatch (CRITICAL → call, WARN → email, INFO → no-op) is missing.</li>
+<li><code>WebController.accept</code> still only logs and acks. It never calls <code>getAndRegisterIncidentFromAlert</code>, so no incident is created on intake.</li>
 <li><code>WebController.accept</code>: <code>ResponseEntity&lt;?&gt;</code> and string concatenation in the log call; use <code>ResponseEntity&lt;AlertAcknowledgement&gt;</code> and <code>log.debug("...{}", alert)</code>.</li>
-<li>Severity routing (<code>CRITICAL</code> call, <code>WARN</code> email, <code>INFO</code> no-op) is not implemented anywhere yet.</li>
 </ul>
 
 <h2>c) What to do next</h2>
 <ol>
-<li><strong>Must-have (compile):</strong> fix the <code>if()</code> and initialize the map:
+<li><strong>Must-have (runtime):</strong> initialize the map:
 <pre>private final TreeMap&lt;String, Incident&gt; incidentsById = new TreeMap&lt;&gt;();</pre>
 </li>
-<li><strong>Must-have:</strong> complete the factory. Set severity from <code>getSeverityFromAlert(alert)</code> and copy the alert fields onto the incident:
-<pre>public Incident getIncidentFromAlert(Alert alert) {
-    Incident incident = new Incident(...);  // populate severity, service, alert fields
-    return incident;
-}</pre>
+<li><strong>Must-have:</strong> call the manager from the controller, then notify. Inject the service and dispatch by severity:
+<pre>Incident incident = incidentManagerService.getAndRegisterIncidentFromAlert(alert);
+notificationService.sendNotification(incident);</pre>
 </li>
-<li><strong>Must-have:</strong> wire the controller. Call <code>getIncidentFromAlert</code>, then <code>registerIncident</code>, then dispatch by severity.</li>
-<li><strong>Should-have:</strong> add the severity routing method with the three cases (CRITICAL, WARN, INFO) and dummy call/email bodies.</li>
-<li><strong>Should-have:</strong> simplify <code>Incident</code> to a single constructor that takes the fields.</li>
-<li><strong>Optional:</strong> add a <code>Responder</code> stub with <code>category()</code> and <code>getNextRespondent()</code>.</li>
+<li><strong>Must-have:</strong> derive severity from the alert with a function, not the service name:
+<pre>private IncidentSeverity getSeverityFromAlert(Alert alert) { ... }</pre>
+</li>
+<li><strong>Should-have:</strong> copy the alert fields onto the incident, and throw on duplicate ids in <code>registerIncident</code>.</li>
+<li><strong>Should-have:</strong> implement the dispatch (CRITICAL → call, WARN → email, INFO → no-op) either in <code>NotificationService</code> or a router in the manager.</li>
 </ol>
 </body>
 </html>
