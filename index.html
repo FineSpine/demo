@@ -13,39 +13,43 @@ code,pre{background:#f4f4f4;border-radius:4px}code{padding:1px 4px}pre{padding:1
 </head>
 <body>
 <h1>LLD Practice Feedback</h1>
-<p class="meta">Requirements: <code>requirements.txt</code> (POST JSON endpoint, HTTP client setup, logging provider)<br>Last updated: 2026-11-06 10:41 UTC</p>
+<p class="meta">Requirements: <code>requirements.txt</code> (Incident Management Service: alert intake, incident creation, severity-based actions)<br>Last updated: 2026-11-06 10:45 UTC</p>
 
 <h2>a) What is right</h2>
 <ul>
-<li><code>WebController.accept</code> returns a JSON body via <code>SampleResponse</code>, which fixes the earlier plain-string response.</li>
-<li><code>ExternalApiService</code> builds a <code>RestClient</code> from the injected builder with a base URL, covering the HTTP setup requirement.</li>
-<li>SLF4J logging is in place in <code>Main</code> and <code>WebController</code>.</li>
+<li><code>Alert</code> has the four fields from the spec (<code>serviceName</code>, <code>serviceId</code>, <code>errorMessage</code>, <code>reportedApi</code>).</li>
+<li><code>IncidentSeverity</code> covers the three severities; the spec names <code>warning</code>, the enum uses <code>WARN</code>, which is fine if consistent.</li>
+<li><code>WebController.accept</code> takes an <code>Alert</code> and returns an acknowledgement, matching the "ack on receipt" step.</li>
 </ul>
 
 <h2>b) What is wrong</h2>
 <ul>
-<li><code>WebController.accept</code>: the request is still <code>@RequestBody Object</code>. Bind it to a typed request record so input is validated.</li>
-<li><code>WebController.accept</code>: return type is <code>ResponseEntity&lt;?&gt;</code>. Use <code>ResponseEntity&lt;SampleResponse&gt;</code> so the JSON contract is explicit.</li>
-<li><code>WebController.accept</code>: <code>log.info("..." + args)</code> concatenates eagerly. Use <code>log.info("Received /accept request: {}", args)</code>.</li>
-<li><code>WebController</code>: <code>import java.util.ResourceBundle</code> is unused. Remove it.</li>
-<li><code>Alert</code> is an empty class. It is not used anywhere yet, so either give it a purpose or delete it.</li>
-<li><code>SampleResponse</code>: a <code>record</code> is shorter and immutable than the Lombok class.</li>
+<li><code>Incident</code> and <code>IncidentManagerService</code> are empty. Incident creation, severity routing, and storage are not implemented yet.</li>
+<li><code>WebController.accept</code> only logs and acks. It must create an incident from the alert and hand it to the manager.</li>
+<li><code>WebController.accept</code>: <code>ResponseEntity&lt;?&gt;</code> and string concatenation in the log call. Use <code>ResponseEntity&lt;AlertAcknowledgement&gt;</code> and <code>log.debug("...{}", alert)</code>.</li>
+<li><code>Responder</code> (spec entity) and the severity actions (phone for CRITICAL, email for WARN, no-op for INFO) are missing.</li>
+<li><code>ExternalApiService</code> and <code>getResource</code> are unrelated to the spec. They can stay if the email/phone dummies will use them, otherwise remove them.</li>
+<li><code>Alert</code> is missing the spec's behaviour of a rogue-service/duplicate-ack path; for now, keep it a plain DTO.</li>
 </ul>
 
 <h2>c) What to do next</h2>
 <ol>
-<li><strong>Must-have:</strong> confirm the endpoint end-to-end. Run the app and call <code>curl -X POST -H "Content-Type: application/json" -d '{"x":1}' localhost:8080/api/accept</code> and check for a JSON body.</li>
-<li><strong>Should-have:</strong> tighten the signature to a typed record and a typed return:
-<pre>public record AcceptRequest(String name) {}
-
-@PostMapping("/accept")
-public ResponseEntity&lt;SampleResponse&gt; accept(@RequestBody AcceptRequest args) {
-    log.info("Received /accept request: {}", args);
-    return ResponseEntity.ok(new SampleResponse("Accepted!"));
+<li><strong>Must-have:</strong> build <code>Incident</code> (id, serviceName, serviceId, errorMessage, reportedApi, severity, createdAt) and a severity function such as <code>IncidentSeverity getSeverityFromAlert(Alert a)</code> in <code>IncidentManagerService</code>.</li>
+<li><strong>Must-have:</strong> in <code>accept</code>, create the incident, store it, and dispatch by severity:
+<pre>public class IncidentManagerService {
+    public Incident createIncident(Alert alert) { ... }
+    public void act(Incident incident) {
+        switch (incident.getSeverity()) {
+            case CRITICAL -&gt; call(incident);   // dummy phone
+            case WARN     -&gt; email(incident);  // dummy email
+            case INFO     -&gt; { }              // no-op
+        }
+    }
 }</pre>
 </li>
-<li><strong>Cleanup:</strong> remove the unused <code>ResourceBundle</code> import, switch to parameterized logging, and delete <code>Alert</code> if it is not needed.</li>
-<li><strong>Optional:</strong> convert <code>SampleResponse</code> to a <code>record</code>.</li>
+<li><strong>Should-have:</strong> add a <code>Responder</code> class with <code>category()</code> and <code>getNextRespondent()</code> stubs, called from the dispatch.</li>
+<li><strong>Should-have:</strong> storage. A <code>TreeMap&lt;String, Incident&gt;</code> keyed by id is enough; add a date/service filter method on it.</li>
+<li><strong>Cleanup:</strong> remove unused <code>ResourceBundle</code> import (if still present), remove the Lombok-only <code>AlertAcknowledgement</code> in favour of a record, and delete <code>ExternalApiService</code> if no dummy call uses it.</li>
 </ol>
 </body>
 </html>
