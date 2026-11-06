@@ -13,36 +13,33 @@ code,pre{background:#f4f4f4;border-radius:4px}code{padding:1px 4px}pre{padding:1
 </head>
 <body>
 <h1>LLD Practice Feedback</h1>
-<p class="meta">Requirements: <code>requirements.txt</code> (Incident Management Service)<br>Last updated: 2026-11-06 11:09 UTC</p>
+<p class="meta">Requirements: <code>requirements.txt</code> (Incident Management Service)<br>Last updated: 2026-11-06 11:13 UTC</p>
 
 <h2>a) What is right</h2>
 <ul>
-<li>The <code>getIncidentId()</code> compile error in <code>RespondentService</code> is fixed: <code>Respondent</code> now has a <code>service</code> field and the lookup uses it.</li>
-<li><code>IncidentManagerService</code> logs the created incident with id, service, and severity, which is useful for tracing.</li>
-<li><code>WebController</code> logs the alert fields at info level.</li>
+<li><code>incidentsById</code> is now initialized, so <code>registerIncident</code> no longer throws.</li>
+<li><code>WebController</code> now creates the incident via <code>IncidentManagerService</code> and looks up a respondent, which wires intake to the core flow.</li>
+<li>Constructor injection in <code>WebController</code> is clean and testable.</li>
 </ul>
 
 <h2>b) What is wrong</h2>
 <ul>
-<li><code>IncidentManagerService.incidentsById</code> is still never initialized, so <code>registerIncident</code> throws a <code>NullPointerException</code>.</li>
-<li><code>IncidentManagerService.registerIncident</code>: the duplicate-id branch is still empty.</li>
-<li><code>IncidentManagerService.getAndRegisterIncidentFromAlert</code>: severity is still derived from the service name (<code>"payments"</code>, <code>"login"</code>), not from the alert. Also, if neither matches, severity stays INFO only by accident of the constructor.</li>
-<li><code>WebController.accept</code> only logs. It never calls <code>getAndRegisterIncidentFromAlert</code>, <code>NotificationService</code>, or <code>RespondentService</code>, so no incident is created on intake.</li>
-<li><code>RespondentService</code> is not called from anywhere, and <code>findRespondentByIncident</code> matches by service only, not by category as the spec requires.</li>
-<li><code>Respondent</code> still lacks <code>category()</code>, <code>noteAcknowledgement()</code>, and <code>getNextRespondent()</code>.</li>
-<li><code>NotificationService</code>: <code>import org.persistence.Main</code> is still unused.</li>
+<li><code>WebController.accept</code> never calls <code>NotificationService.sendNotification</code>. The spec's core step (act on the incident by severity) is missing from intake.</li>
+<li><code>NotificationService</code> is not a Spring bean (no <code>@Service</code>), so it cannot be injected into the controller until it is annotated.</li>
+<li><code>IncidentManagerService.getAndRegisterIncidentFromAlert</code>: severity is still derived from <code>contains("payments")</code> and <code>contains("login")</code>, not from the alert. Also, the second <code>if</code> can overwrite the first.</li>
+<li><code>IncidentManagerService.registerIncident</code>: the duplicate-id branch is still empty. Throw an exception there.</li>
+<li><code>Respondent</code> still lacks <code>category()</code>, <code>noteAcknowledgement()</code>, and <code>getNextRespondent()</code>, and <code>findRespondentByIncident</code> matches by service only.</li>
 </ul>
 
 <h2>c) What to do next</h2>
 <ol>
-<li><strong>Must-have (runtime):</strong> initialize the map: <code>private final TreeMap&lt;String, Incident&gt; incidentsById = new TreeMap&lt;&gt;();</code></li>
-<li><strong>Must-have:</strong> in <code>WebController.accept</code>, call the manager, then the notifier:
+<li><strong>Must-have:</strong> inject <code>NotificationService</code> into <code>WebController</code> and call it after the incident is created. Annotate <code>NotificationService</code> with <code>@Service</code>:
 <pre>Incident incident = incidentManagerService.getAndRegisterIncidentFromAlert(alert);
 notificationService.sendNotification(incident);</pre>
 </li>
-<li><strong>Must-have:</strong> derive severity from the alert with a function instead of <code>contains("payments")</code>.</li>
-<li><strong>Should-have:</strong> call <code>RespondentService.findRespondentByIncident</code> from the same flow, and add a category to <code>Respondent</code>.</li>
-<li><strong>Cleanup:</strong> remove the unused <code>Main</code> import from <code>NotificationService</code> and throw on duplicate ids.</li>
+<li><strong>Must-have:</strong> replace <code>contains(...)</code> severity logic with a single function on the alert, e.g. <code>IncidentSeverity getSeverityFromAlert(Alert alert)</code>, with an explicit INFO default.</li>
+<li><strong>Should-have:</strong> throw on duplicate ids in <code>registerIncident</code>.</li>
+<li><strong>Should-have:</strong> add a category to <code>Respondent</code> and let <code>findRespondentByIncident</code> match by category.</li>
 </ol>
 </body>
 </html>
